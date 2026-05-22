@@ -70,6 +70,14 @@ async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise
   return response.json() as Promise<T>;
 }
 
+function getRequestedPlaylistIndex(pathname: string) {
+  const match = pathname.match(/^\/([1-9]\d*)\/?$/u);
+  if (!match) return null;
+
+  const position = Number(match[1]);
+  return Number.isSafeInteger(position) ? position - 1 : null;
+}
+
 function App() {
   const path = window.location.pathname;
 
@@ -119,6 +127,13 @@ function PublicPage() {
     setSelectedId((currentId) => {
       if (currentId && videos.some((video) => video.id === currentId)) {
         return currentId;
+      }
+
+      const requestedIndex = getRequestedPlaylistIndex(window.location.pathname);
+      const requestedVideo = requestedIndex === null ? null : videos[requestedIndex];
+      if (requestedVideo) {
+        window.localStorage.setItem(selectedVideoKey, requestedVideo.id);
+        return requestedVideo.id;
       }
 
       const storedId = window.localStorage.getItem(selectedVideoKey);
