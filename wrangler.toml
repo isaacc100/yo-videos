@@ -1,0 +1,13 @@
+name = "yo-videos"
+compatibility_date = "2026-05-22"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yo-videos-db"
+database_id = "81399490-7e48-45f1-b1d8-1bf5ea871efa"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "VIDEOS_BUCKET"
+bucket_name = "yo-videos-videos"

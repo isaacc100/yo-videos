@@ -1,0 +1,29 @@
+{
+  "name": "yo-videos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && tsc -p functions/tsconfig.json --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "cf:dev": "npm run build && wrangler pages dev dist",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name yo-videos",
+    "db:migrate:local": "wrangler d1 migrations apply yo-videos-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply yo-videos-db --remote"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "lucide-react": "^0.561.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260522.0",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7",
+    "wrangler": "^4.94.0"
+  }
+}
