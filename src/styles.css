@@ -511,6 +511,53 @@ textarea {
   accent-color: var(--green);
 }
 
+.upload-control {
+  display: grid;
+  gap: 7px;
+  margin-top: -8px;
+}
+
+.upload-control span {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.upload-button {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--pale-green);
+  border-radius: 6px;
+  padding: 9px 13px;
+  color: var(--dark-green);
+  background: var(--white);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.upload-button:not(.is-disabled):hover {
+  background: #f3faf6;
+  border-color: var(--green);
+}
+
+.upload-button.is-disabled {
+  color: var(--grey);
+  background: #f4f4f5;
+  cursor: not-allowed;
+}
+
+.upload-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
 .notice {
   margin: 0;
   border: 1px solid transparent;

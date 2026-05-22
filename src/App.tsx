@@ -12,6 +12,7 @@ import {
   Save,
   SkipForward,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -68,6 +69,31 @@ async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise
   }
 
   return response.json() as Promise<T>;
+}
+
+async function uploadFileRequest(file: File, uploadType: "video" | "thumbnail") {
+  const response = await fetch("/api/admin/uploads", {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+      "X-Upload-Type": uploadType,
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    let message = "The file could not be uploaded.";
+    try {
+      const error = (await response.json()) as { error?: string };
+      message = error.error ?? message;
+    } catch {
+      message = response.statusText || message;
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<{ key: string; url: string }>;
 }
 
 function getRequestedPlaylistIndex(pathname: string) {
@@ -285,6 +311,7 @@ function AdminPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<"video" | "thumbnail" | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -397,6 +424,30 @@ function AdminPage() {
       setError(err instanceof Error ? err.message : "The video could not be saved.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpload(kind: "video" | "thumbnail", file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setUploading(kind);
+    setError("");
+    setMessage("");
+
+    try {
+      const uploaded = await uploadFileRequest(file, kind);
+      setForm((currentForm) => ({
+        ...currentForm,
+        videoUrl: kind === "video" ? uploaded.url : currentForm.videoUrl,
+        thumbnailUrl: kind === "thumbnail" ? uploaded.url : currentForm.thumbnailUrl,
+      }));
+      setMessage(kind === "video" ? "Video uploaded. Save changes to use it." : "Thumbnail uploaded. Save changes to use it.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The file could not be uploaded.");
+    } finally {
+      setUploading(null);
     }
   }
 
@@ -560,6 +611,23 @@ function AdminPage() {
             />
           </label>
 
+          <div className="upload-control">
+            <label className={`upload-button ${uploading ? "is-disabled" : ""}`}>
+              <Upload size={18} />
+              {uploading === "video" ? "Uploading video" : "Upload video"}
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime,video/*"
+                disabled={uploading !== null}
+                onChange={(event) => {
+                  void handleUpload("video", event.currentTarget.files?.[0] ?? null);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+            <span>Uploads to R2 and fills the video URL.</span>
+          </div>
+
           <label>
             Thumbnail URL
             <input
@@ -568,6 +636,23 @@ function AdminPage() {
               onChange={(event) => setForm({ ...form, thumbnailUrl: event.target.value })}
             />
           </label>
+
+          <div className="upload-control">
+            <label className={`upload-button ${uploading ? "is-disabled" : ""}`}>
+              <Upload size={18} />
+              {uploading === "thumbnail" ? "Uploading thumbnail" : "Upload thumbnail"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/*"
+                disabled={uploading !== null}
+                onChange={(event) => {
+                  void handleUpload("thumbnail", event.currentTarget.files?.[0] ?? null);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+            <span>Uploads to R2 and fills the thumbnail URL.</span>
+          </div>
 
           <div className="form-row">
             <label>
@@ -590,7 +675,7 @@ function AdminPage() {
             </label>
           </div>
 
-          <button className="button primary-button" type="submit" disabled={saving}>
+          <button className="button primary-button" type="submit" disabled={saving || uploading !== null}>
             {form.id ? <Save size={18} /> : <Plus size={18} />}
             {form.id ? "Save changes" : "Add video"}
           </button>

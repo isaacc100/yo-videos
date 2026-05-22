@@ -7,9 +7,9 @@ The public page is open to everyone. The `/admin` page uses an app-level admin c
 ## Stack
 
 - Cloudflare Pages for hosting
-- Cloudflare Pages Functions for `/api/*`
+- Cloudflare Pages Functions for `/api/*` and `/media/*`
 - Cloudflare D1 for video metadata
-- Cloudflare R2 bucket reserved for future video storage
+- Cloudflare R2 for uploaded videos and thumbnails
 - React and Vite for the interface
 
 ## Local setup
@@ -39,7 +39,7 @@ Apply the migration and seed video:
 npm run db:migrate:remote
 ```
 
-Create the empty R2 bucket for future videos:
+Create the R2 bucket for videos and thumbnails:
 
 ```bash
 npx wrangler r2 bucket create yo-videos-videos
@@ -91,5 +91,7 @@ The app-level admin code is still required for editing access.
 ## Admin
 
 Open `/admin`, enter the admin code, then add, edit, publish, unpublish, delete, or reorder videos.
+
+Use the upload controls under the Video URL and Thumbnail URL fields to upload files into R2. Uploaded files return `/media/...` URLs and are public so parents can play videos without signing in. Save the video after uploading so the generated URL is stored in D1.
 
 Public visitors only see published videos.
