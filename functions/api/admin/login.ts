@@ -7,7 +7,13 @@ type LoginBody = {
 };
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const body = await readJson<LoginBody>(request);
+  let body: LoginBody;
+  try {
+    body = await readJson<LoginBody>(request);
+  } catch (error) {
+    return badRequest(error instanceof Error ? error.message : "Request body must be valid JSON.");
+  }
+
   if (typeof body.code !== "string") {
     return badRequest("Admin code is required.");
   }
