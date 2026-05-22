@@ -606,6 +606,12 @@ function AdminPage() {
                     </div>
                     <h3>{video.title}</h3>
                     {video.description ? <p>{video.description}</p> : null}
+                    <a className="admin-video-url" href={video.videoUrl} target="_blank" rel="noreferrer">
+                      {video.videoUrl}
+                    </a>
+                    {video.thumbnailUrl ? (
+                      <span className="admin-thumbnail-url">Thumbnail: {video.thumbnailUrl}</span>
+                    ) : null}
                   </div>
                   <div className="row-actions">
                     <button

@@ -207,6 +207,9 @@ function validateVideoInput(input: VideoInput, fallbackSortOrder: number) {
   const description = readString(input.description, "Description", 1000, false);
   const videoUrl = readUrl(input.videoUrl ?? input.video_url, "Video URL", true);
   const thumbnailUrl = readUrl(input.thumbnailUrl ?? input.thumbnail_url, "Thumbnail URL", false);
+  if (thumbnailUrl && looksLikeVideoFile(thumbnailUrl)) {
+    throw new Error("Thumbnail URL should be an image URL. Put video files in Video URL.");
+  }
   const sortOrder = readSortOrder(input.sortOrder ?? input.sort_order, fallbackSortOrder);
   const published = typeof input.published === "boolean" ? input.published : Boolean(input.published);
 
@@ -282,4 +285,9 @@ function readSortOrder(value: unknown, fallbackSortOrder: number) {
   }
 
   return parsed;
+}
+
+function looksLikeVideoFile(value: string) {
+  const pathname = new URL(value).pathname.toLowerCase();
+  return /\.(mp4|m4v|mov|webm|ogg|ogv)$/u.test(pathname);
 }

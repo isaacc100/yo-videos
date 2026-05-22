@@ -554,6 +554,21 @@ textarea {
   color: var(--text-muted);
 }
 
+.admin-video-url,
+.admin-thumbnail-url {
+  display: block;
+  max-width: 100%;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  color: var(--dark-green);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.admin-thumbnail-url {
+  color: var(--text-muted);
+}
+
 .status-line {
   display: flex;
   flex-wrap: wrap;
