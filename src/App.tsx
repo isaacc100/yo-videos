@@ -290,9 +290,7 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
   }
 
   return (
-    <main className="page-shell">
-      <Header />
-
+    <main className="page-shell public-shell">
       <section className="intro-section" aria-labelledby="page-title">
         <div className="title-wrap">
           <h1 id="page-title" className="title-block">
