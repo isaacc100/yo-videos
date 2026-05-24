@@ -313,6 +313,62 @@ a {
   text-decoration-thickness: 2px;
 }
 
+.focused-shell {
+  display: grid;
+  width: 100%;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  background: var(--black);
+}
+
+.focused-player {
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--black);
+}
+
+.focused-player video {
+  width: 100%;
+  height: 100%;
+  background: var(--black);
+  object-fit: contain;
+}
+
+.focused-empty,
+.focused-fallback {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--white);
+  background: var(--black);
+  text-align: center;
+}
+
+.focused-fallback p,
+.focused-empty {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.focused-fallback a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.focused-error {
+  color: #ffd7d7;
+}
+
 .playlist-panel {
   padding: 16px;
 }

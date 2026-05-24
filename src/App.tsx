@@ -97,11 +97,21 @@ async function uploadFileRequest(file: File, uploadType: "video" | "thumbnail") 
 }
 
 function getRequestedPlaylistIndex(pathname: string) {
-  const match = pathname.match(/^\/([1-9]\d*)\/?$/u);
+  const match = pathname.match(/^\/([1-9]\d*)(?:\/(?:full|fullscreen))?\/?$/u);
   if (!match) return null;
 
   const position = Number(match[1]);
   return Number.isSafeInteger(position) ? position - 1 : null;
+}
+
+function isFocusedPlaybackMode(pathname: string, search: string) {
+  const params = new URLSearchParams(search);
+  const queryValue = params.get("full") ?? params.get("fullscreen");
+  if (queryValue !== null && queryValue !== "0" && queryValue.toLowerCase() !== "false") {
+    return true;
+  }
+
+  return /^\/(?:[1-9]\d*\/)?(?:full|fullscreen)\/?$/u.test(pathname);
 }
 
 function App() {
@@ -111,10 +121,10 @@ function App() {
     return <AdminPage />;
   }
 
-  return <PublicPage />;
+  return <PublicPage focused={isFocusedPlaybackMode(path, window.location.search)} />;
 }
 
-function PublicPage() {
+function PublicPage({ focused = false }: { focused?: boolean }) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -151,15 +161,15 @@ function PublicPage() {
     }
 
     setSelectedId((currentId) => {
-      if (currentId && videos.some((video) => video.id === currentId)) {
-        return currentId;
-      }
-
       const requestedIndex = getRequestedPlaylistIndex(window.location.pathname);
       const requestedVideo = requestedIndex === null ? null : videos[requestedIndex];
       if (requestedVideo) {
         window.localStorage.setItem(selectedVideoKey, requestedVideo.id);
         return requestedVideo.id;
+      }
+
+      if (currentId && videos.some((video) => video.id === currentId)) {
+        return currentId;
       }
 
       const storedId = window.localStorage.getItem(selectedVideoKey);
@@ -197,6 +207,44 @@ function PublicPage() {
     if (nextVideo) {
       selectVideo(nextVideo);
     }
+  }
+
+  if (focused) {
+    return (
+      <main className="focused-shell">
+        {loading ? (
+          <div className="focused-empty">Loading video</div>
+        ) : error ? (
+          <div className="focused-empty focused-error">{error}</div>
+        ) : selectedVideo ? (
+          <section className="focused-player" aria-label={selectedVideo.title}>
+            {!videoError ? (
+              <video
+                key={selectedVideo.id}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                poster={selectedVideo.thumbnailUrl || undefined}
+                src={selectedVideo.videoUrl}
+                onError={() => setVideoError(true)}
+              >
+                <a href={selectedVideo.videoUrl}>Open the video</a>
+              </video>
+            ) : (
+              <div className="focused-fallback">
+                <p>This video cannot be played here.</p>
+                <a href={selectedVideo.videoUrl} target="_blank" rel="noreferrer">
+                  Open the video <ExternalLink size={16} />
+                </a>
+              </div>
+            )}
+          </section>
+        ) : (
+          <div className="focused-empty">No video is available.</div>
+        )}
+      </main>
+    );
   }
 
   return (
