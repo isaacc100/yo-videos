@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { Video, VideoPayload } from "./types";
+import type { AppSettings, Video, VideoPayload } from "./types";
 
 const selectedVideoKey = "yo:selected-video";
 const portalUrl = "https://youthonboarding.sja.org.uk";
@@ -72,7 +72,7 @@ async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise
   return response.json() as Promise<T>;
 }
 
-async function uploadFileRequest(file: File, uploadType: "video" | "thumbnail") {
+async function uploadFileRequest(file: File, uploadType: "video" | "thumbnail" | "guide") {
   const response = await fetch("/api/admin/uploads", {
     method: "POST",
     headers: {
@@ -127,6 +127,7 @@ function App() {
 
 function PublicPage({ focused = false }: { focused?: boolean }) {
   const [videos, setVideos] = useState<Video[]>([]);
+  const [settings, setSettings] = useState<AppSettings>({ parentGuideUrl: "" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -137,9 +138,15 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
 
     async function loadVideos() {
       try {
-        const data = await apiRequest<{ videos: Video[] }>("/api/videos");
+        const [videoData, settingsData] = await Promise.all([
+          apiRequest<{ videos: Video[] }>("/api/videos"),
+          apiRequest<{ settings: AppSettings }>("/api/settings").catch(() => ({
+            settings: { parentGuideUrl: "" },
+          })),
+        ]);
         if (!active) return;
-        setVideos(data.videos);
+        setVideos(videoData.videos);
+        setSettings(settingsData.settings);
         setError("");
       } catch (err) {
         if (!active) return;
@@ -265,6 +272,21 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
         <div className="chevron-field" aria-hidden="true" />
       </section>
 
+      <section className="disclosure-box" aria-label="Important notice">
+        <div>
+          <h2>Important notice</h2>
+          <p>
+            These tutorial videos are unofficial and are provided only to help parents use Youth Onboarding.
+            They are not produced, approved, or managed by St John Ambulance.
+          </p>
+        </div>
+        {settings.parentGuideUrl ? (
+          <a className="button ghost-button" href={settings.parentGuideUrl} target="_blank" rel="noreferrer">
+            SJA produced parent guide <ExternalLink size={16} />
+          </a>
+        ) : null}
+      </section>
+
       <section className="video-layout" aria-label="Tutorial playlist">
         <div className="player-panel">
           {loading ? (
@@ -362,11 +384,14 @@ function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [adminCode, setAdminCode] = useState("");
   const [videos, setVideos] = useState<Video[]>([]);
+  const [settings, setSettings] = useState<AppSettings>({ parentGuideUrl: "" });
   const [form, setForm] = useState<AdminForm>(emptyForm);
+  const [settingsForm, setSettingsForm] = useState<AppSettings>({ parentGuideUrl: "" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState<"video" | "thumbnail" | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [uploading, setUploading] = useState<"video" | "thumbnail" | "guide" | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -376,7 +401,7 @@ function AdminPage() {
         await apiRequest<{ authenticated: boolean }>("/api/admin/me");
         if (!active) return;
         setAuthenticated(true);
-        await loadAdminVideos();
+        await Promise.all([loadAdminVideos(), loadAdminSettings()]);
       } catch {
         if (active) setAuthenticated(false);
       } finally {
@@ -395,6 +420,12 @@ function AdminPage() {
     setVideos(data.videos);
   }
 
+  async function loadAdminSettings() {
+    const data = await apiRequest<{ settings: AppSettings }>("/api/admin/settings");
+    setSettings(data.settings);
+    setSettingsForm(data.settings);
+  }
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -407,7 +438,7 @@ function AdminPage() {
       });
       setAdminCode("");
       setAuthenticated(true);
-      await loadAdminVideos();
+      await Promise.all([loadAdminVideos(), loadAdminSettings()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The admin code was not accepted.");
     }
@@ -417,6 +448,8 @@ function AdminPage() {
     await apiRequest<{ ok: boolean }>("/api/admin/logout", { method: "POST" });
     setAuthenticated(false);
     setVideos([]);
+    setSettings({ parentGuideUrl: "" });
+    setSettingsForm({ parentGuideUrl: "" });
     setForm(emptyForm);
   }
 
@@ -482,7 +515,28 @@ function AdminPage() {
     }
   }
 
-  async function handleUpload(kind: "video" | "thumbnail", file: File | null) {
+  async function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingSettings(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const data = await apiRequest<{ settings: AppSettings }>("/api/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify(settingsForm),
+      });
+      setSettings(data.settings);
+      setSettingsForm(data.settings);
+      setMessage("Settings saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Settings could not be saved.");
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  async function handleUpload(kind: "video" | "thumbnail" | "guide", file: File | null) {
     if (!file) {
       return;
     }
@@ -493,12 +547,17 @@ function AdminPage() {
 
     try {
       const uploaded = await uploadFileRequest(file, kind);
-      setForm((currentForm) => ({
-        ...currentForm,
-        videoUrl: kind === "video" ? uploaded.url : currentForm.videoUrl,
-        thumbnailUrl: kind === "thumbnail" ? uploaded.url : currentForm.thumbnailUrl,
-      }));
-      setMessage(kind === "video" ? "Video uploaded. Save changes to use it." : "Thumbnail uploaded. Save changes to use it.");
+      if (kind === "guide") {
+        setSettingsForm({ parentGuideUrl: uploaded.url });
+        setMessage("Parent guide uploaded. Save settings to use it.");
+      } else {
+        setForm((currentForm) => ({
+          ...currentForm,
+          videoUrl: kind === "video" ? uploaded.url : currentForm.videoUrl,
+          thumbnailUrl: kind === "thumbnail" ? uploaded.url : currentForm.thumbnailUrl,
+        }));
+        setMessage(kind === "video" ? "Video uploaded. Save changes to use it." : "Thumbnail uploaded. Save changes to use it.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "The file could not be uploaded.");
     } finally {
@@ -625,6 +684,53 @@ function AdminPage() {
         </button>
       </section>
 
+      {message ? <p className="notice success-notice admin-notice">{message}</p> : null}
+      {error ? <p className="notice error-notice admin-notice">{error}</p> : null}
+
+      <section className="settings-panel" aria-labelledby="settings-title">
+        <form className="settings-form" onSubmit={handleSettingsSubmit}>
+          <div>
+            <h2 id="settings-title">Parent guide</h2>
+            <p>Set the SJA produced parent guide PDF shown in the notice on the public page.</p>
+          </div>
+
+          <label>
+            SJA produced parent guide URL
+            <input
+              type="url"
+              value={settingsForm.parentGuideUrl}
+              onChange={(event) => setSettingsForm({ parentGuideUrl: event.target.value })}
+              placeholder="https://example.com/guide.pdf"
+            />
+          </label>
+
+          <div className="settings-actions">
+            <label className={`upload-button ${uploading ? "is-disabled" : ""}`}>
+              <Upload size={18} />
+              {uploading === "guide" ? "Uploading guide" : "Upload guide PDF"}
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                disabled={uploading !== null}
+                onChange={(event) => {
+                  void handleUpload("guide", event.currentTarget.files?.[0] ?? null);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+            <button className="button primary-button" type="submit" disabled={savingSettings || uploading !== null}>
+              <Save size={18} />
+              Save settings
+            </button>
+            {settings.parentGuideUrl ? (
+              <a className="button ghost-button" href={settings.parentGuideUrl} target="_blank" rel="noreferrer">
+                Open guide <ExternalLink size={16} />
+              </a>
+            ) : null}
+          </div>
+        </form>
+      </section>
+
       <section className="admin-grid">
         <form className="video-form" onSubmit={handleSubmit} aria-label="Video details">
           <div className="form-title-row">
@@ -734,9 +840,6 @@ function AdminPage() {
             {form.id ? <Save size={18} /> : <Plus size={18} />}
             {form.id ? "Save changes" : "Add video"}
           </button>
-
-          {message ? <p className="notice success-notice">{message}</p> : null}
-          {error ? <p className="notice error-notice">{error}</p> : null}
         </form>
 
         <div className="admin-list" aria-label="Current videos">

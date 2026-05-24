@@ -90,7 +90,7 @@ function readMediaKey(value: string | string[] | undefined) {
 
 function isAllowedMediaKey(key: string) {
   return (
-    (key.startsWith("videos/") || key.startsWith("thumbnails/")) &&
+    (key.startsWith("videos/") || key.startsWith("thumbnails/") || key.startsWith("guides/")) &&
     !key.includes("..") &&
     !key.includes("\\")
   );

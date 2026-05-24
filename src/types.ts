@@ -18,3 +18,7 @@ export type VideoPayload = {
   sortOrder?: number;
   published: boolean;
 };
+
+export type AppSettings = {
+  parentGuideUrl: string;
+};

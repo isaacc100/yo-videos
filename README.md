@@ -94,4 +94,6 @@ Open `/admin`, enter the admin code, then add, edit, publish, unpublish, delete,
 
 Use the upload controls under the Video URL and Thumbnail URL fields to upload files into R2. Uploaded files return `/media/...` URLs and are public so parents can play videos without signing in. Save the video after uploading so the generated URL is stored in D1.
 
+Use the Parent guide section to set or upload the SJA produced parent guide PDF. This link appears in the public disclosure notice.
+
 Public visitors only see published videos.

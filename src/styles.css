@@ -178,6 +178,7 @@ a {
 .player-panel,
 .playlist-panel,
 .admin-login,
+.settings-panel,
 .video-form,
 .admin-list {
   border: 1px solid var(--light-grey);
@@ -317,6 +318,30 @@ a {
 .portal-button:not(:disabled):hover {
   background: #006846;
   border-color: #006846;
+}
+
+.disclosure-box {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+  border-left: 6px solid var(--yellow);
+  border-radius: 6px;
+  padding: 16px 18px;
+  background: var(--pale-yellow);
+}
+
+.disclosure-box h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.disclosure-box p {
+  max-width: 780px;
+  margin: 6px 0 0;
+  color: #2c2c2c;
 }
 
 .fallback-link {
@@ -548,6 +573,34 @@ a {
   margin-top: 26px;
 }
 
+.settings-panel {
+  margin-bottom: 22px;
+  padding: 18px;
+}
+
+.settings-form {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-form h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.settings-form p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .video-form,
 .admin-list {
   padding: 18px;
@@ -646,6 +699,10 @@ textarea {
   border: 1px solid transparent;
   border-radius: 6px;
   padding: 10px 12px;
+}
+
+.admin-notice {
+  margin-bottom: 14px;
 }
 
 .success-notice {
@@ -793,13 +850,21 @@ textarea {
   }
 
   .video-summary,
+  .disclosure-box,
   .admin-heading {
     flex-direction: column;
   }
 
   .video-summary .button,
+  .disclosure-box .button,
   .admin-heading .button {
     width: 100%;
+  }
+
+  .settings-actions .button,
+  .settings-actions .upload-button {
+    width: 100%;
+    justify-content: center;
   }
 
   .focused-portal-button {
