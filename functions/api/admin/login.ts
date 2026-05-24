@@ -1,3 +1,4 @@
+import { recordFailedLogin, recordSuccessfulLogin, requireAdminUnlocked } from "../../_lib/adminLock";
 import { createSessionCookie, isValidAdminCode } from "../../_lib/auth";
 import { badRequest, json, methodNotAllowed, readJson, unauthorized } from "../../_lib/http";
 import { Env } from "../../_lib/videos";
@@ -7,6 +8,9 @@ type LoginBody = {
 };
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const lockedResponse = await requireAdminUnlocked(env);
+  if (lockedResponse) return lockedResponse;
+
   let body: LoginBody;
   try {
     body = await readJson<LoginBody>(request);
@@ -19,8 +23,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   if (!isValidAdminCode(body.code, env)) {
+    const failedLogin = await recordFailedLogin(env, request);
+    if (failedLogin.response) return failedLogin.response;
     return unauthorized();
   }
+
+  await recordSuccessfulLogin(env);
 
   const headers = new Headers();
   headers.append("Set-Cookie", await createSessionCookie(request, env));

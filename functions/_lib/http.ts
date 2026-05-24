@@ -21,6 +21,10 @@ export function unauthorized() {
   return json({ error: "Unauthorised." }, { status: 401 });
 }
 
+export function locked(message = "Admin access is locked.", data: Record<string, unknown> = {}) {
+  return json({ error: message, locked: true, ...data }, { status: 423 });
+}
+
 export function notFound(message = "Not found.") {
   return json({ error: message }, { status: 404 });
 }

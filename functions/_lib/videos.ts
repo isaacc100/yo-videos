@@ -2,6 +2,8 @@ export interface Env {
   DB: D1Database;
   ADMIN_CODE: string;
   SESSION_SECRET: string;
+  ADMIN_UNLOCK_RESET_SECRET?: string;
+  RESEND_API_KEY: string;
   VIDEOS_BUCKET: R2Bucket;
 }
 

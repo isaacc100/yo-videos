@@ -4,6 +4,8 @@ A small Cloudflare Pages app for one public parent-support tutorial playlist.
 
 The public page is open to everyone. The `/admin` page uses an app-level admin code stored as the `ADMIN_CODE` Cloudflare secret and a signed HttpOnly session cookie using `SESSION_SECRET`.
 
+After two failed admin sign-in attempts, admin access locks and an unlock code is emailed with Resend. Unlock emails can be resent after 30 seconds, then 60 seconds, then one hour, then one day. Rotating `ADMIN_UNLOCK_RESET_SECRET` also clears the lock.
+
 ## Stack
 
 - Cloudflare Pages for hosting
@@ -52,9 +54,11 @@ Use long random values. Rotate the admin code before production use.
 ```bash
 npx wrangler pages secret put ADMIN_CODE --project-name yo-videos
 npx wrangler pages secret put SESSION_SECRET --project-name yo-videos
+npx wrangler pages secret put ADMIN_UNLOCK_RESET_SECRET --project-name yo-videos
+npx wrangler pages secret put RESEND_API_KEY --project-name yo-videos
 ```
 
-`SESSION_SECRET` should be at least 32 random bytes. For example:
+`SESSION_SECRET` and `ADMIN_UNLOCK_RESET_SECRET` should be at least 32 random bytes. For example:
 
 ```bash
 openssl rand -hex 32
@@ -74,7 +78,7 @@ openssl rand -hex 32
 6. In the Pages project settings, confirm the bindings:
    - `DB` bound to `yo-videos-db`
    - `VIDEOS_BUCKET` bound to `yo-videos-videos`
-7. Add the `ADMIN_CODE` and `SESSION_SECRET` secrets to the Pages project.
+7. Add the `ADMIN_CODE`, `SESSION_SECRET`, `ADMIN_UNLOCK_RESET_SECRET`, and `RESEND_API_KEY` secrets to the Pages project.
 8. Redeploy after adding bindings or secrets.
 
 ## Optional Cloudflare Access
@@ -91,6 +95,8 @@ The app-level admin code is still required for editing access.
 ## Admin
 
 Open `/admin`, enter the admin code, then add, edit, publish, unpublish, delete, or reorder videos.
+
+After two failed admin-code attempts, the admin area locks. Use the emailed unlock code to reopen it, or rotate `ADMIN_UNLOCK_RESET_SECRET` in Cloudflare Pages secrets to clear the lock.
 
 Use the upload controls under the Video URL and Thumbnail URL fields to upload files into R2. Uploaded files return `/media/...` URLs and are public so parents can play videos without signing in. Save the video after uploading so the generated URL is stored in D1.
 

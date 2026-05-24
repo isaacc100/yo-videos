@@ -25,6 +25,20 @@ type RequestOptions = RequestInit & {
   body?: BodyInit | null;
 };
 
+class ApiRequestError extends Error {
+  status: number;
+  locked: boolean;
+  nextEmailAt: string;
+
+  constructor(message: string, status: number, locked = false, nextEmailAt = "") {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.locked = locked;
+    this.nextEmailAt = nextEmailAt;
+  }
+}
+
 type AdminForm = {
   id: string | null;
   title: string;
@@ -56,13 +70,17 @@ async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise
 
   if (!response.ok) {
     let message = "Something went wrong.";
+    let locked = false;
+    let nextEmailAt = "";
     try {
-      const error = (await response.json()) as { error?: string };
+      const error = (await response.json()) as { error?: string; locked?: boolean; nextEmailAt?: string | null };
       message = error.error ?? message;
+      locked = Boolean(error.locked);
+      nextEmailAt = typeof error.nextEmailAt === "string" ? error.nextEmailAt : "";
     } catch {
       message = response.statusText || message;
     }
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status, locked, nextEmailAt);
   }
 
   if (response.status === 204) {
@@ -113,6 +131,18 @@ function isFocusedPlaybackMode(pathname: string, search: string) {
   }
 
   return /^\/(?:[1-9]\d*\/)?(?:full|fullscreen)\/?$/u.test(pathname);
+}
+
+function formatLockTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "the delay has passed";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function App() {
@@ -382,7 +412,10 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
 function AdminPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [adminLocked, setAdminLocked] = useState(false);
   const [adminCode, setAdminCode] = useState("");
+  const [unlockCode, setUnlockCode] = useState("");
+  const [nextUnlockEmailAt, setNextUnlockEmailAt] = useState("");
   const [videos, setVideos] = useState<Video[]>([]);
   const [settings, setSettings] = useState<AppSettings>({ parentGuideUrl: "" });
   const [form, setForm] = useState<AdminForm>(emptyForm);
@@ -402,8 +435,14 @@ function AdminPage() {
         if (!active) return;
         setAuthenticated(true);
         await Promise.all([loadAdminVideos(), loadAdminSettings()]);
-      } catch {
-        if (active) setAuthenticated(false);
+      } catch (err) {
+        if (active) {
+          setAuthenticated(false);
+          if (err instanceof ApiRequestError && (err.status === 423 || err.locked)) {
+            setAdminLocked(true);
+            setNextUnlockEmailAt(err.nextEmailAt);
+          }
+        }
       } finally {
         if (active) setCheckingSession(false);
       }
@@ -437,10 +476,56 @@ function AdminPage() {
         body: JSON.stringify({ code: adminCode }),
       });
       setAdminCode("");
+      setAdminLocked(false);
+      setNextUnlockEmailAt("");
       setAuthenticated(true);
       await Promise.all([loadAdminVideos(), loadAdminSettings()]);
     } catch (err) {
+      if (err instanceof ApiRequestError && (err.status === 423 || err.locked)) {
+        setAdminLocked(true);
+        setNextUnlockEmailAt(err.nextEmailAt);
+      }
       setError(err instanceof Error ? err.message : "The admin code was not accepted.");
+    }
+  }
+
+  async function handleUnlock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    try {
+      await apiRequest<{ ok: boolean }>("/api/admin/unlock", {
+        method: "POST",
+        body: JSON.stringify({ code: unlockCode }),
+      });
+      setUnlockCode("");
+      setAdminCode("");
+      setAdminLocked(false);
+      setNextUnlockEmailAt("");
+      setMessage("Admin access unlocked. Sign in with the admin code.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The unlock code was not accepted.");
+    }
+  }
+
+  async function handleResendUnlock() {
+    setError("");
+    setMessage("");
+
+    try {
+      const data = await apiRequest<{ ok: boolean; sent: boolean; nextEmailAt: string | null }>(
+        "/api/admin/resend-unlock",
+        { method: "POST" },
+      );
+      setNextUnlockEmailAt(data.nextEmailAt ?? "");
+      setMessage("A new unlock code has been sent.");
+    } catch (err) {
+      if (err instanceof ApiRequestError && (err.status === 423 || err.locked)) {
+        setAdminLocked(true);
+        setNextUnlockEmailAt(err.nextEmailAt);
+      }
+      setError(err instanceof Error ? err.message : "Another unlock code could not be sent yet.");
     }
   }
 
@@ -645,22 +730,51 @@ function AdminPage() {
             <span className="title-line">Manage tutorial</span>
             <span className="title-line title-accent">videos</span>
           </h1>
-          <form onSubmit={handleLogin} className="login-form">
-            <label htmlFor="admin-code">Admin code</label>
-            <input
-              id="admin-code"
-              type="password"
-              autoComplete="current-password"
-              value={adminCode}
-              onChange={(event) => setAdminCode(event.target.value)}
-              minLength={1}
-              required
-            />
-            <button className="button primary-button" type="submit">
-              <Save size={18} />
-              Sign in
-            </button>
-          </form>
+          {adminLocked ? (
+            <form onSubmit={handleUnlock} className="login-form">
+              <p className="login-help">
+                Admin access is locked. Enter the unlock code sent by email, then sign in again.
+              </p>
+              {nextUnlockEmailAt ? (
+                <p className="login-help">Another unlock email can be sent after {formatLockTime(nextUnlockEmailAt)}.</p>
+              ) : null}
+              <label htmlFor="unlock-code">Unlock code</label>
+              <input
+                id="unlock-code"
+                type="password"
+                autoComplete="one-time-code"
+                value={unlockCode}
+                onChange={(event) => setUnlockCode(event.target.value)}
+                minLength={1}
+                required
+              />
+              <button className="button primary-button" type="submit">
+                <Save size={18} />
+                Unlock admin
+              </button>
+              <button className="button ghost-button" type="button" onClick={handleResendUnlock}>
+                Send another unlock email
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="login-form">
+              <label htmlFor="admin-code">Admin code</label>
+              <input
+                id="admin-code"
+                type="password"
+                autoComplete="current-password"
+                value={adminCode}
+                onChange={(event) => setAdminCode(event.target.value)}
+                minLength={1}
+                required
+              />
+              <button className="button primary-button" type="submit">
+                <Save size={18} />
+                Sign in
+              </button>
+            </form>
+          )}
+          {message ? <p className="notice success-notice">{message}</p> : null}
           {error ? <p className="notice error-notice">{error}</p> : null}
         </section>
       </main>

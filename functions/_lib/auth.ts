@@ -1,6 +1,8 @@
 import { unauthorized } from "./http";
+import { requireAdminUnlocked } from "./adminLock";
 
 export interface AdminEnv {
+  DB: D1Database;
   ADMIN_CODE: string;
   SESSION_SECRET: string;
 }
@@ -63,6 +65,11 @@ export async function isValidSession(request: Request, env: AdminEnv) {
 }
 
 export async function requireAdmin(request: Request, env: AdminEnv) {
+  const lockedResponse = await requireAdminUnlocked(env);
+  if (lockedResponse) {
+    return lockedResponse;
+  }
+
   if (!(await isValidSession(request, env))) {
     return unauthorized();
   }

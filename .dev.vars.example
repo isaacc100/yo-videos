@@ -1,2 +1,4 @@
 ADMIN_CODE=replace-with-a-long-random-admin-code
 SESSION_SECRET=replace-with-at-least-32-random-bytes
+ADMIN_UNLOCK_RESET_SECRET=replace-with-a-rotatable-random-reset-secret
+RESEND_API_KEY=replace-with-your-resend-api-key

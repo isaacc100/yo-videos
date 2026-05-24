@@ -573,6 +573,13 @@ a {
   margin-top: 26px;
 }
 
+.login-help {
+  margin: 0;
+  color: var(--grey);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
 .settings-panel {
   margin-bottom: 22px;
   padding: 18px;
