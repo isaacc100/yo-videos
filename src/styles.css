@@ -344,6 +344,12 @@ a {
   color: #2c2c2c;
 }
 
+.disclosure-actions {
+  display: grid;
+  gap: 10px;
+  min-width: min(100%, 260px);
+}
+
 .fallback-link {
   margin: 5px 2px 2px;
   font-size: 0.95rem;

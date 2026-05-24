@@ -20,6 +20,7 @@ import type { AppSettings, Video, VideoPayload } from "./types";
 
 const selectedVideoKey = "yo:selected-video";
 const portalUrl = "https://youthonboarding.sja.org.uk";
+const sjaYoungPeopleUrl = "https://www.sja.org.uk/get-involved/young-people/";
 
 type RequestOptions = RequestInit & {
   body?: BodyInit | null;
@@ -310,11 +311,16 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
             They are not produced, approved, or managed by St John Ambulance.
           </p>
         </div>
-        {settings.parentGuideUrl ? (
-          <a className="button ghost-button" href={settings.parentGuideUrl} target="_blank" rel="noreferrer">
-            SJA produced parent guide <ExternalLink size={16} />
+        <div className="disclosure-actions">
+          {settings.parentGuideUrl ? (
+            <a className="button ghost-button" href={settings.parentGuideUrl} target="_blank" rel="noreferrer">
+              SJA produced parent guide <ExternalLink size={16} />
+            </a>
+          ) : null}
+          <a className="button ghost-button" href={sjaYoungPeopleUrl} target="_blank" rel="noreferrer">
+            Visit SJA young people <ExternalLink size={16} />
           </a>
-        ) : null}
+        </div>
       </section>
 
       <section className="video-layout" aria-label="Tutorial playlist">
