@@ -307,6 +307,18 @@ a {
   background: var(--pale-green-2);
 }
 
+.portal-button {
+  color: var(--white);
+  background: var(--dark-green);
+  border-color: var(--dark-green);
+  text-decoration: none;
+}
+
+.portal-button:not(:disabled):hover {
+  background: #006846;
+  border-color: #006846;
+}
+
 .fallback-link {
   margin: 5px 2px 2px;
   font-size: 0.95rem;
@@ -324,11 +336,26 @@ a {
 }
 
 .focused-player {
+  position: relative;
   display: grid;
   width: 100%;
   height: 100vh;
   height: 100dvh;
   background: var(--black);
+}
+
+.focused-portal-button {
+  position: absolute;
+  z-index: 2;
+  right: 18px;
+  top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-weight: 700;
 }
 
 .focused-player video {
@@ -773,6 +800,12 @@ textarea {
   .video-summary .button,
   .admin-heading .button {
     width: 100%;
+  }
+
+  .focused-portal-button {
+    right: 10px;
+    top: 10px;
+    max-width: calc(100% - 20px);
   }
 
   .playlist-item {

@@ -19,6 +19,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Video, VideoPayload } from "./types";
 
 const selectedVideoKey = "yo:selected-video";
+const portalUrl = "https://youthonboarding.sja.org.uk";
 
 type RequestOptions = RequestInit & {
   body?: BodyInit | null;
@@ -218,6 +219,9 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
           <div className="focused-empty focused-error">{error}</div>
         ) : selectedVideo ? (
           <section className="focused-player" aria-label={selectedVideo.title}>
+            <a className="portal-button focused-portal-button" href={portalUrl} target="_blank" rel="noreferrer">
+              Head to the portal <ExternalLink size={16} />
+            </a>
             {!videoError ? (
               <video
                 key={selectedVideo.id}
@@ -301,6 +305,9 @@ function PublicPage({ focused = false }: { focused?: boolean }) {
                   <SkipForward size={18} />
                   Next video
                 </button>
+                <a className="button portal-button" href={portalUrl} target="_blank" rel="noreferrer">
+                  Head to the portal <ExternalLink size={16} />
+                </a>
               </div>
 
               <a className="fallback-link" href={selectedVideo.videoUrl} target="_blank" rel="noreferrer">
